@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 {
   "rewrites": [
     {
@@ -14,3 +15,21 @@
     }
   ]
 }
+=======
+{
+  "rewrites": [
+    {
+      "source": "/api/:path*",
+      "destination": "https://qrbackend-production-a26d.up.railway.app/api/:path*"
+    },
+    {
+      "source": "/pdf/:path*",
+      "destination": "https://qrbackend-production-a26d.up.railway.app/pdf/:path*"
+    },
+    {
+      "source": "/((?!api|pdf).*|[^.]+)",
+      "destination": "/index.html"
+    }
+  ]
+}
+>>>>>>> 1a2fb271cb5e7348ed7c7d2499217915b7e2ea01
