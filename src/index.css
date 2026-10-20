@@ -1,0 +1,111 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── Warm editorial dark palette ───────────────────────────────────────
+   One hue family (warm brown, ~25deg) instead of the usual slate/sky.
+   Single brass accent — no purple, no sky blue, no violet. */
+@layer base {
+  :root {
+    --background: 24 11% 7%;
+    --foreground: 40 22% 91%;
+
+    --card: 25 10% 10%;
+    --card-foreground: 40 20% 91%;
+
+    --primary: 38 58% 49%;            /* brass */
+    --primary-foreground: 30 25% 10%;
+
+    --secondary: 26 8% 15%;
+    --secondary-foreground: 40 15% 84%;
+
+    --success: 145 28% 56%;           /* desaturated sage */
+    --success-foreground: 150 30% 10%;
+
+    --destructive: 4 52% 47%;
+    --destructive-foreground: 20 20% 96%;
+
+    --muted: 26 8% 15%;
+    --muted-foreground: 38 9% 60%;
+
+    --accent: 27 10% 18%;
+    --accent-foreground: 40 16% 88%;
+
+    --border: 30 8% 20%;
+    --input: 30 8% 22%;
+    --ring: 38 45% 46%;
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+  html {
+    scroll-behavior: smooth;
+  }
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    margin: 0;
+  }
+
+  ::-webkit-scrollbar {
+    width: 8px;
+  }
+  ::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply bg-border/60 rounded-full;
+  }
+
+  /* Grain overlay to break flat digital surfaces */
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    pointer-events: none;
+    opacity: 0.35;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.05'/%3E%3C/svg%3E");
+  }
+
+  :focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 2px;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply bg-primary hover:bg-primary/85 text-primary-foreground font-medium px-4 py-2 rounded-lg
+           transition-all duration-200 active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none
+           flex items-center gap-2 text-sm;
+  }
+  .btn-secondary {
+    @apply bg-secondary hover:bg-accent text-secondary-foreground font-medium px-4 py-2 rounded-lg
+           transition-all duration-200 active:scale-[0.98] border border-border
+           flex items-center gap-2 text-sm disabled:opacity-50 disabled:pointer-events-none;
+  }
+  .btn-danger {
+    @apply bg-destructive/15 hover:bg-destructive/25 text-destructive font-medium px-4 py-2 rounded-lg
+           transition-all duration-200 active:scale-[0.98] border border-destructive/30
+           flex items-center gap-2 text-sm disabled:opacity-50 disabled:pointer-events-none;
+  }
+  .card {
+    @apply bg-card border border-border rounded-xl p-6;
+  }
+  .input {
+    @apply bg-muted/60 border border-border text-foreground rounded-lg px-4 py-2.5
+           placeholder:text-muted-foreground/60 focus:outline-none focus:border-primary/60
+           focus:ring-1 focus:ring-ring/40 transition-all duration-200 w-full text-sm;
+  }
+  .label {
+    @apply block text-sm font-medium text-muted-foreground mb-1.5;
+  }
+  .heading {
+    @apply font-display font-semibold tracking-tight text-foreground;
+  }
+  /* Numeric data uses tabular figures with the display face */
+  .num {
+    @apply font-display tabular-nums tracking-tight;
+  }
+}
