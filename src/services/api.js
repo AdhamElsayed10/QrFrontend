@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 import axios from 'axios';
 
 let baseURL = import.meta.env.VITE_API_URL || '/api';
@@ -30,29 +29,3 @@ api.interceptors.response.use(
 );
 
 export default api;
-=======
-import axios from 'axios';
-
-const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || '/api',
-});
-
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token');
-  if (token) config.headers.Authorization = `Bearer ${token}`;
-  return config;
-});
-
-api.interceptors.response.use(
-  (res) => res,
-  (err) => {
-    if (err.response?.status === 401) {
-      localStorage.removeItem('token');
-      window.location.href = '/login';
-    }
-    return Promise.reject(err);
-  }
-);
-
-export default api;
->>>>>>> 1a2fb271cb5e7348ed7c7d2499217915b7e2ea01
