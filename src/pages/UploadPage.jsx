@@ -12,6 +12,7 @@ import { Card } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
 import { BorderBeam } from '../components/magicui/border-beam';
+import { BRAND } from '../lib/colors';
 
 const QR_SETTINGS_NOTE = 'Fixed: size 50px, custom placement (x 48 / y 620 from bottom), applied to all pages.';
 
@@ -28,7 +29,7 @@ export default function UploadPage() {
   const [dragOver, setDragOver] = useState(false);
   const dropInputRef = useRef(null);
 
-  // Per-file upload status: { [filename]: 'pending' | 'uploading' | 'completed' | 'failed' }
+  // Per-file upload status keyed by array index: { [position]: 'uploading' | 'completed' | 'failed' }
   const [fileStatuses, setFileStatuses] = useState({});
 
   const [loading, setLoading] = useState(false);
@@ -80,7 +81,7 @@ export default function UploadPage() {
     }
 
     const initialStatuses = {};
-    files.forEach((f) => { initialStatuses[f.name] = 'uploading'; });
+    files.forEach((_, i) => { initialStatuses[i] = 'uploading'; });
     setFileStatuses(initialStatuses);
     setResults(null);
 
@@ -99,11 +100,16 @@ export default function UploadPage() {
         },
       });
 
+      // FormData preserves file order, so response docs map positionally to
+      // files. Anything without a returned document counts as failed.
       const newStatuses = {};
       const docs = res.data.documents || [];
-      docs.forEach((doc) => {
-        newStatuses[doc.title + '.pdf'] = doc.processingStatus === 'COMPLETED' ? 'completed' : 'failed';
+      docs.forEach((doc, i) => {
+        if (i < files.length) {
+          newStatuses[i] = doc.processingStatus === 'COMPLETED' ? 'completed' : 'failed';
+        }
       });
+      for (let i = docs.length; i < files.length; i++) newStatuses[i] = 'failed';
       setFileStatuses(newStatuses);
 
       setResults(docs);
@@ -115,7 +121,7 @@ export default function UploadPage() {
       toast.error(serverMsg || `Upload failed (${status || 'network error'})`);
 
       const failedStatuses = {};
-      files.forEach((f) => { failedStatuses[f.name] = 'failed'; });
+      for (let i = 0; i < files.length; i++) failedStatuses[i] = 'failed';
       setFileStatuses(failedStatuses);
     } finally {
       setLoading(false);
@@ -160,6 +166,11 @@ export default function UploadPage() {
     }
   };
 
+  // Result-card tone depends on actual outcomes, not a blanket "success"
+  const completedCount = results ? results.filter((d) => d.processingStatus === 'COMPLETED').length : 0;
+  const failedCount = results ? results.length - completedCount : 0;
+  const allCompleted = !!results && failedCount === 0;
+
   const statusIcon = (status) => {
     switch (status) {
       case 'uploading': return <Loader2 size={14} className="animate-spin text-primary" />;
@@ -179,7 +190,7 @@ export default function UploadPage() {
       </div>
 
       {/* Drop zone */}
-      <Card className="space-y-4">
+      <Card className="space-y-4 p-5 sm:p-6">
         <h2 className="heading text-base flex items-center gap-2">
           <FileUp size={16} className="text-primary" />
           Select PDF files
@@ -195,7 +206,7 @@ export default function UploadPage() {
           onClick={() => dropInputRef.current?.click()}
           onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') dropInputRef.current?.click(); }}
           className={`
-            relative border-2 border-dashed rounded-xl py-12 px-6 transition-all duration-200 cursor-pointer text-center
+            relative border-2 border-dashed rounded-xl py-10 sm:py-12 px-6 transition-all duration-200 cursor-pointer text-center
             focus-visible:outline-none focus-visible:border-primary
             ${dragOver
               ? 'border-primary bg-primary/10'
@@ -240,21 +251,17 @@ export default function UploadPage() {
               <Files size={14} className="text-primary" />
               {files.length} {files.length === 1 ? 'file' : 'files'} selected
             </p>
-            <button
-              onClick={clearAll}
-              disabled={loading}
-              className="text-xs text-muted-foreground hover:text-destructive transition-colors disabled:opacity-40"
-            >
+            <Button variant="ghost" size="sm" onClick={clearAll} disabled={loading} className="h-8 px-3">
               Clear all
-            </button>
+            </Button>
           </div>
-          <div className="space-y-1.5 max-h-64 overflow-y-auto pr-1">
+          <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
             {files.map((file, idx) => {
-              const status = fileStatuses[file.name];
+              const status = fileStatuses[idx];
               return (
                 <div
                   key={`${file.name}-${file.size}`}
-                  className="flex items-center gap-3 p-2.5 bg-secondary/70 rounded-lg group"
+                  className="flex items-center gap-3 p-3 bg-secondary/70 rounded-lg group"
                 >
                   <div className="w-8 h-8 bg-accent border border-border rounded-lg flex items-center justify-center flex-shrink-0">
                     <FileText size={14} className="text-foreground/70" />
@@ -270,7 +277,7 @@ export default function UploadPage() {
                       onClick={() => removeFile(idx)}
                       disabled={loading}
                       aria-label={`Remove ${file.name}`}
-                      className="text-muted-foreground hover:text-destructive transition-colors p-1 flex-shrink-0 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 disabled:opacity-30 disabled:cursor-not-allowed"
+                      className="text-muted-foreground hover:text-destructive transition-colors p-2 flex-shrink-0 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 focus-visible:opacity-100 disabled:opacity-30 disabled:cursor-not-allowed"
                     >
                       <X size={14} />
                     </button>
@@ -288,9 +295,9 @@ export default function UploadPage() {
           <div className="flex items-center justify-between text-xs text-muted-foreground">
             <span className="flex items-center gap-1.5">
               <Loader2 size={12} className="animate-spin" />
-              Uploading
+              {uploadProgress >= 100 ? 'Processing QR codes' : 'Uploading'}
             </span>
-            <span className="num">{uploadProgress}%</span>
+            {uploadProgress < 100 && <span className="num">{uploadProgress}%</span>}
           </div>
           <div className="w-full h-1.5 bg-secondary rounded-full overflow-hidden" role="progressbar" aria-valuenow={uploadProgress} aria-valuemin={0} aria-valuemax={100}>
             <div
@@ -314,13 +321,25 @@ export default function UploadPage() {
 
       {/* Results */}
       {results && (
-        <Card className="relative overflow-hidden border-success/25 space-y-4">
-          <BorderBeam size={70} duration={8} colorFrom="#7fb593" colorTo="#e6efe2" />
-          <div className="flex items-center justify-between">
-            <h3 className="heading text-base text-success flex items-center gap-2">
-              <CheckCircle2 size={16} />
-              Upload finished
-            </h3>
+        <Card className={`relative overflow-hidden space-y-4 p-5 sm:p-6 ${allCompleted ? 'border-success/25' : 'border-warning/30'}`}>
+          {allCompleted ? (
+            <BorderBeam size={70} duration={8} colorFrom={BRAND.sageBeamFrom} colorTo={BRAND.sageBeamTo} />
+          ) : (
+            <BorderBeam size={70} duration={8} colorFrom={BRAND.warning} colorTo={BRAND.blueBeamTo} />
+          )}
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h3 className={`heading text-base flex items-center gap-2 ${allCompleted ? 'text-success' : 'text-foreground'}`}>
+                {allCompleted ? <CheckCircle2 size={16} /> : <AlertCircle size={16} className="text-warning" />}
+                Upload finished
+              </h3>
+              {failedCount > 0 && (
+                <Badge variant="warning">
+                  <AlertCircle />
+                  {failedCount} of {results.length} failed
+                </Badge>
+              )}
+            </div>
             <Button variant="secondary" size="sm" onClick={() => navigate('/dashboard/documents')}>
               <ArrowRight size={12} />
               All documents

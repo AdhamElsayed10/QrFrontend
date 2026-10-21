@@ -1,10 +1,11 @@
 import { motion } from 'framer-motion';
 import { cn } from '../../lib/utils';
+import { BRAND } from '../../lib/colors';
 
 // Magic UI — Border Beam
 // https://magicui.design/docs/components/border-beam
 // Adapted from the v4 registry syntax to Tailwind v3 arbitrary classes;
-// default colors recolored to the warm brass palette (the registry
+// default colors recolored to the deep-navy blue palette (the registry
 // default "#9c40ff" violet is intentionally never used).
 
 function BorderBeam({
@@ -12,8 +13,8 @@ function BorderBeam({
   size = 50,
   delay = 0,
   duration = 6,
-  colorFrom = '#d8a03c',
-  colorTo = '#f0e6d2',
+  colorFrom = BRAND.blueBeamFrom,
+  colorTo = BRAND.blueBeamTo,
   transition,
   style,
   reverse = false,

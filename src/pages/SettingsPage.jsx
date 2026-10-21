@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Save, Eye, EyeOff, Loader2, Lock, User, Info } from 'lucide-react';
+import { Save, Eye, EyeOff, Loader2, Lock, User, Info, Check, X } from 'lucide-react';
 import api from '../services/api';
 import { useAuth } from '../hooks/useAuth';
 import toast from 'react-hot-toast';
@@ -15,6 +15,22 @@ const FIXED_QR = [
   { label: 'Y from bottom', value: '620' },
   { label: 'Applied to', value: 'All pages' },
 ];
+
+function ReqChip({ met, label }) {
+  return (
+    <span
+      aria-live="polite"
+      className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-medium transition-colors ${
+        met
+          ? 'border-success/25 bg-success/15 text-success'
+          : 'border-border bg-secondary text-muted-foreground'
+      }`}
+    >
+      {met ? <Check size={10} /> : <X size={10} />}
+      {label}
+    </span>
+  );
+}
 
 export default function SettingsPage() {
   const { admin } = useAuth();
@@ -66,7 +82,7 @@ export default function SettingsPage() {
           type="button"
           onClick={() => setShow({ ...show, [field]: !show[field] })}
           aria-label={show[field] ? 'Hide password' : 'Show password'}
-          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground/70 hover:text-foreground transition-colors"
+          className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1.5 rounded-md text-muted-foreground hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           {show[field] ? <EyeOff size={15} /> : <Eye size={15} />}
         </button>
@@ -84,7 +100,7 @@ export default function SettingsPage() {
       </div>
 
       {/* QR placement — locked */}
-      <Card className="relative">
+      <Card className="relative p-5 sm:p-6">
         <div
           className="absolute inset-0 rounded-xl opacity-[0.35] pointer-events-none [background:repeating-linear-gradient(-45deg,transparent,transparent_6px,hsl(var(--muted))_6px,hsl(var(--muted))_7px)]"
           aria-hidden="true"
@@ -112,7 +128,7 @@ export default function SettingsPage() {
       </Card>
 
       {/* Account info */}
-      <Card>
+      <Card className="p-5 sm:p-6">
         <h2 className="heading text-base mb-5 flex items-center gap-2.5">
           <User size={16} className="text-primary" />
           Account information
@@ -121,18 +137,18 @@ export default function SettingsPage() {
           <div>
             <label className="label" htmlFor="email-setting">Email</label>
             <Input id="email-setting" type="email" value={admin?.email || ''} readOnly
-              className="h-10 opacity-70" aria-describedby="email-note" />
+              className="h-10 text-muted-foreground cursor-not-allowed" aria-describedby="email-note" />
             <p id="email-note" className="mt-1.5 text-[11px] text-muted-foreground">Managed by the backend — read only</p>
           </div>
           <div>
             <label className="label" htmlFor="role-setting">Role</label>
-            <Input id="role-setting" type="text" value="Administrator" readOnly className="h-10 opacity-70" />
+            <Input id="role-setting" type="text" value="Administrator" readOnly className="h-10 text-muted-foreground cursor-not-allowed" />
           </div>
         </div>
       </Card>
 
       {/* Change password */}
-      <Card>
+      <Card className="p-5 sm:p-6">
         <h2 className="heading text-base mb-5 flex items-center gap-2.5">
           <Lock size={16} className="text-primary" />
           Change password
@@ -156,6 +172,13 @@ export default function SettingsPage() {
             value={pwForm.confirmPassword}
             onChange={(e) => setPwForm({ ...pwForm, confirmPassword: e.target.value })}
           />
+          {/* Rules surface before submit, not only after the toast fires */}
+          <div className="flex flex-wrap gap-2">
+            <ReqChip met={pwForm.newPassword.length >= 8} label="At least 8 characters" />
+            {pwForm.confirmPassword.length > 0 && (
+              <ReqChip met={pwForm.newPassword === pwForm.confirmPassword} label="Passwords match" />
+            )}
+          </div>
           <div className="flex items-center gap-2 text-xs text-muted-foreground pt-1">
             <Info size={12} className="flex-shrink-0" />
             Minimum 8 characters. You will need to sign in again after changing it.

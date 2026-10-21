@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider, useAuth } from './hooks/useAuth';
+import { BRAND } from './lib/colors';
 import DashboardLayout from './layouts/DashboardLayout';
 import LoginPage from './pages/LoginPage';
 import HomePage from './pages/HomePage';
@@ -61,16 +62,17 @@ export default function App() {
       <BrowserRouter>
         <Toaster
           position="top-right"
+          containerStyle={{ zIndex: 12000 }} // grain layer sits at 9999
           toastOptions={{
             style: {
-              background: 'hsl(25 10% 10%)',
-              color: 'hsl(40 22% 91%)',
-              border: '1px solid hsl(30 8% 20%)',
+              background: 'hsl(222 22% 9%)',
+              color: 'hsl(210 25% 92%)',
+              border: '1px solid hsl(220 12% 19%)',
               borderRadius: '10px',
               fontSize: '14px',
             },
-            success: { iconTheme: { primary: '#a8c9ae', secondary: 'hsl(30 25% 10%)' } },
-            error: { iconTheme: { primary: '#d6716d', secondary: 'hsl(20 20% 96%)' } },
+            success: { iconTheme: { primary: BRAND.success, secondary: 'hsl(220 16% 14%)' } },
+            error: { iconTheme: { primary: BRAND.destructive, secondary: 'hsl(210 20% 96%)' } },
           }}
         />
         <Routes>

@@ -7,6 +7,7 @@ import { Input } from '../components/ui/input';
 import { Button } from '../components/ui/button';
 import { QRMark } from '../components/qrcode-mark';
 import { BorderBeam } from '../components/magicui/border-beam';
+import { BRAND } from '../lib/colors';
 
 export default function LoginPage() {
   const { login } = useAuth();
@@ -32,7 +33,10 @@ export default function LoginPage() {
       {/* Ambient light — warm, off-axis, not a centered purple glow */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden="true">
         <div className="absolute -top-1/4 -right-1/4 w-[42rem] h-[42rem] bg-primary/[0.06] rounded-full blur-3xl" />
-        <div className="absolute -bottom-1/3 -left-1/4 w-[30rem] h-[30rem] bg-[#3d2b1a]/40 rounded-full blur-3xl" />
+        <div
+          className="absolute -bottom-1/3 -left-1/4 w-[30rem] h-[30rem] rounded-full blur-3xl"
+          style={{ background: BRAND.loginGlowWash }}
+        />
       </div>
 
       {/* Oversized wordmark bleeding off-screen, editorial style */}

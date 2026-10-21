@@ -14,8 +14,8 @@ const STATUS = {
 };
 
 function StatusBadge({ status }) {
-  if (!status) return <Badge variant="success"><Check /> QR ready</Badge>;
-  const cfg = STATUS[status] || STATUS.COMPLETED;
+  // Same contract as DocumentsPage: unknown/null = still processing
+  const cfg = STATUS[status] || STATUS.PROCESSING;
   const Icon = cfg.icon;
   return (
     <Badge variant={cfg.variant}>
@@ -26,16 +26,19 @@ function StatusBadge({ status }) {
 }
 
 export default function HomePage() {
-  const [stats, setStats] = useState({ total: 0, recent: [] });
+  const [stats, setStats] = useState({ total: 0, all: [], recent: [] });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    api.get('/documents?limit=5').then((res) => {
-      setStats({ total: res.data.total, recent: res.data.documents });
+    // One fetch over the whole library: KPIs must count everything,
+    // not just the latest-5 slice shown in Recent uploads.
+    api.get('/documents?limit=1000').then((res) => {
+      const all = res.data.documents;
+      setStats({ total: res.data.total, all, recent: all.slice(0, 5) });
     }).finally(() => setLoading(false));
   }, []);
 
-  const todayCount = stats.recent.filter((d) => {
+  const todayCount = stats.all.filter((d) => {
     const today = new Date().toDateString();
     return new Date(d.createdAt).toDateString() === today;
   }).length;
@@ -53,7 +56,7 @@ export default function HomePage() {
       {/* Stats — offset 2+1 asymmetric grid instead of three equal cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <StatBlock label="Documents" value={stats.total} loading={loading} delay={0} />
-        <StatBlock label="QR codes generated" value={stats.total} loading={loading} delay={0.15} accent />
+        <StatBlock label="QR codes ready" value={stats.all.filter((d) => d.processingStatus === 'COMPLETED').length} loading={loading} delay={0.15} accent />
         <StatBlock label="Added today" value={todayCount} loading={loading} delay={0.3} />
       </div>
 

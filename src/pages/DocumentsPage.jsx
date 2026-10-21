@@ -127,6 +127,7 @@ export default function DocumentsPage() {
   const [docs, setDocs] = useState([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const [deleteTarget, setDeleteTarget] = useState(null);
@@ -139,12 +140,14 @@ export default function DocumentsPage() {
 
   const fetchDocs = useCallback(async () => {
     setLoading(true);
+    setError(false);
     try {
       const res = await api.get('/documents', { params: { search, page, limit } });
       setDocs(res.data.documents);
       setTotal(res.data.total);
     } catch {
-      toast.error('Failed to load documents');
+      // Network/API hiccup — never collapse this into the empty state.
+      setError(true);
     } finally {
       setLoading(false);
     }
@@ -290,8 +293,25 @@ export default function DocumentsPage() {
         />
       </div>
 
+      {/* Error state — a fetch failure never reads as an empty library */}
+      {!loading && error && (
+        <Card className="text-center py-16">
+          <div className="w-16 h-16 bg-destructive/10 border border-destructive/25 rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <AlertCircle size={26} className="text-destructive" strokeWidth={1.5} />
+          </div>
+          <p className="text-foreground font-display font-semibold mb-1">Couldn&rsquo;t load documents</p>
+          <p className="text-muted-foreground text-sm mb-5">
+            The library could not be fetched. Your documents are safe — check the connection and try again.
+          </p>
+          <Button onClick={fetchDocs} disabled={loading}>
+            <RefreshCw size={14} />
+            Retry
+          </Button>
+        </Card>
+      )}
+
       {/* Empty state */}
-      {!loading && docs.length === 0 && (
+      {!loading && !error && docs.length === 0 && (
         <Card className="text-center py-16">
           <div className="w-16 h-16 bg-secondary border border-border rounded-2xl flex items-center justify-center mx-auto mb-4">
             <FileText size={26} className="text-muted-foreground/50" strokeWidth={1.5} />
@@ -397,6 +417,10 @@ export default function DocumentsPage() {
                       </td>
                       <td className="px-5 py-3.5">
                         <div className="flex items-center justify-end gap-1">
+                          {/* copy affordance for phone — QR URL column is hidden below sm */}
+                          <span className="sm:hidden">
+                            <ActionBtn icon={Copy} label="Copy QR URL" onClick={() => handleCopyUrl(doc)} />
+                          </span>
                           <ActionBtn icon={ExternalLink} label="Open verification page" onClick={() => handleView(doc)} />
                           <ActionBtn icon={Download} label="Download PDF"
                             onClick={() => handleDownload(doc)} loading={downloadingId === doc.id} />
