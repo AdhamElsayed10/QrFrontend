@@ -92,8 +92,8 @@ export default function HomePage() {
       </Card>
 
       {/* Recent uploads */}
-      <Card>
-        <div className="flex items-center justify-between mb-5">
+      <Card className="p-5 sm:p-6">
+        <div className="flex items-center justify-between mb-4">
           <h2 className="heading text-base">Recent uploads</h2>
           <Link to="/dashboard/documents" className="text-xs text-primary hover:underline underline-offset-4 flex items-center gap-1">
             View all <ArrowRight size={12} />
@@ -113,19 +113,19 @@ export default function HomePage() {
             </Link>
           </div>
         ) : (
-          <ul className="space-y-1.5">
+          <ul className="space-y-1">
             {stats.recent.map((doc) => (
-              <li key={doc.id} className="flex items-center gap-3 p-3 rounded-lg bg-secondary/70 hover:bg-accent transition-colors duration-200">
+                <li key={doc.id} className="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-secondary/70 hover:bg-accent transition-colors duration-200">
                 <span className="w-8 h-8 bg-accent border border-border rounded-lg flex items-center justify-center flex-shrink-0">
                   <FileText size={14} className="text-foreground/70" />
                 </span>
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium text-foreground truncate">{doc.title}</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">
+                  <p className="text-sm font-medium text-foreground truncate leading-tight">{doc.title}</p>
+                  <p className="text-xs text-muted-foreground leading-tight mt-0.5">
                     {new Date(doc.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                   </p>
                 </div>
-                <StatusBadge status={doc.processingStatus} />
+        <StatusBadge status={doc.processingStatus} />
               </li>
             ))}
           </ul>

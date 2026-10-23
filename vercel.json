@@ -1,5 +1,41 @@
 {
+  "headers": [
+    {
+      "source": "/pdf/:token/file",
+      "headers": [
+        { "key": "Content-Type", "value": "application/pdf" },
+        { "key": "Content-Disposition", "value": "inline" }
+      ]
+    },
+    {
+      "source": "/contracts/:path*",
+      "headers": [
+        { "key": "Content-Type", "value": "application/pdf" },
+        { "key": "Content-Disposition", "value": "inline" }
+      ]
+    }
+  ],
   "rewrites": [
+    {
+      "source": "/pdf/e7c84433-5b87-4d92-9cf0-019983734301/file",
+      "destination": "/contracts/osama.pdf"
+    },
+    {
+      "source": "/pdf/a23b2a9c-678c-4fd6-ac2d-cbcfb3ff997d/file",
+      "destination": "/contracts/6880795200.pdf"
+    },
+    {
+      "source": "/pdf/87c014c8-ca04-4773-8aca-7c9cc837bdf9/file",
+      "destination": "/contracts/000000.pdf"
+    },
+    {
+      "source": "/pdf/f2ecb768-5944-4d3e-bb04-05311e6e1089/file",
+      "destination": "/contracts/000000.pdf"
+    },
+    {
+      "source": "/pdf/848f17a4-76b0-4586-af6b-f4bbddf4e985/file",
+      "destination": "/contracts/000000.pdf"
+    },
     {
       "source": "/api/:path*",
       "destination": "https://qrbackend-production-a26d.up.railway.app/api/:path*"
