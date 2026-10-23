@@ -2,7 +2,7 @@ import React, { useEffect, useState, useCallback, useRef } from 'react';
 import {
   Search, FileText, Trash2, Download, Copy, Check,
   ExternalLink, Loader2, RefreshCw, QrCode, LayoutGrid, List,
-  Clock, AlertCircle, CheckCircle2, ArrowRight, ArrowLeft,
+  Clock, AlertCircle, CheckCircle2, ArrowRight, ArrowLeft, Pencil,
 } from 'lucide-react';
 import api from '../services/api';
 import toast from 'react-hot-toast';
@@ -13,6 +13,10 @@ import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
 import { Skeleton } from '../components/ui/skeleton';
 import { DeleteAlertDialog } from '../components/ui/alert-dialog';
+import {
+  Dialog, DialogContent, DialogTitle, DialogDescription, DialogFooter,
+} from '../components/ui/dialog';
+import { ContractDataEditor } from '../components/contract-data-editor';
 
 // ─── Status Badge ──────────────────────────────────────────────────────
 const STATUS_CONFIG = {
@@ -59,7 +63,7 @@ function ActionBtn({ icon: Icon, label, onClick, loading, disabled, destructive 
 }
 
 // ─── Document Card (Grid View) ─────────────────────────────────────────
-function DocumentCard({ doc, onView, onDownload, onCopyUrl, onDelete, actionState }) {
+function DocumentCard({ doc, onView, onDownload, onCopyUrl, onDelete, onEdit, actionState }) {
   const copied = actionState.copiedId === doc.id;
 
   return (
@@ -115,6 +119,10 @@ function DocumentCard({ doc, onView, onDownload, onCopyUrl, onDelete, actionStat
             : <Download size={13} />}
           Download
         </Button>
+        <Button variant="ghost" size="sm" onClick={() => onEdit(doc)} title="Edit QR fields">
+          <Pencil size={13} />
+          Edit
+        </Button>
         <div className="flex-1" />
         <ActionBtn icon={Trash2} label="Delete PDF" destructive onClick={() => onDelete(doc)} />
       </div>
@@ -135,6 +143,8 @@ export default function DocumentsPage() {
   const [downloadingId, setDownloadingId] = useState(null);
   const [copiedId, setCopiedId] = useState(null);
   const [viewMode, setViewMode] = useState('table'); // 'table' | 'grid'
+  const [editingDoc, setEditingDoc] = useState(null);
+  const [savingContract, setSavingContract] = useState(false);
   const limit = 12;
   const searchTimeout = useRef(null);
 
@@ -201,6 +211,22 @@ export default function DocumentsPage() {
       setTimeout(() => setCopiedId(null), 2000);
     } else {
       toast.error('Failed to copy URL to clipboard');
+    }
+  };
+
+  const handleSaveContractData = async (payload) => {
+    if (!editingDoc) return;
+    setSavingContract(true);
+    try {
+      const res = await api.put(`/documents/${editingDoc.id}/data`, payload);
+      const updated = res?.data;
+      setDocs((prev) => prev.map((d) => (d.id === editingDoc.id ? { ...d, ...updated } : d)));
+      setEditingDoc(null);
+      toast.success('QR fields updated');
+    } catch {
+      toast.error('Failed to update QR fields');
+    } finally {
+      setSavingContract(false);
     }
   };
 
@@ -424,6 +450,7 @@ export default function DocumentsPage() {
                           <ActionBtn icon={ExternalLink} label="Open verification page" onClick={() => handleView(doc)} />
                           <ActionBtn icon={Download} label="Download PDF"
                             onClick={() => handleDownload(doc)} loading={downloadingId === doc.id} />
+                          <ActionBtn icon={Pencil} label="Edit QR fields" onClick={() => setEditingDoc(doc)} />
                           <ActionBtn icon={Trash2} label="Delete PDF" destructive onClick={() => setDeleteTarget(doc)} />
                         </div>
                       </td>
@@ -447,6 +474,7 @@ export default function DocumentsPage() {
               onDownload={handleDownload}
               onCopyUrl={handleCopyUrl}
               onDelete={setDeleteTarget}
+              onEdit={setEditingDoc}
               actionState={{ downloadingId, copiedId }}
             />
           ))}
@@ -469,6 +497,29 @@ export default function DocumentsPage() {
           </div>
         </div>
       )}
+
+      {/* Edit QR fields dialog */}
+      <Dialog open={!!editingDoc} onOpenChange={(open) => { if (!open) setEditingDoc(null); }}>
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+          <DialogTitle>Edit QR fields</DialogTitle>
+          <DialogDescription>
+            Update the fields behind this document&rsquo;s QR code. Saving re-marks the data as filled.
+          </DialogDescription>
+          {editingDoc && (
+            <ContractDataEditor
+              key={editingDoc.id}
+              contractData={editingDoc.contractData}
+              onSave={handleSaveContractData}
+              saving={savingContract}
+            />
+          )}
+          <DialogFooter>
+            <Button variant="secondary" size="sm" onClick={() => setEditingDoc(null)} disabled={savingContract}>
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
