@@ -43,7 +43,8 @@ export function getQRPosition(position, pageWidth, pageHeight, qrSize, customX, 
 
 export async function restampPdf(pdfArrayBuffer, qrUrl, placement) {
   const {
-    position = 'custom',
+    position,
+    qrPosition,
     customX = 464,
     customY = 175,
     qrSize = 65,
@@ -51,6 +52,7 @@ export async function restampPdf(pdfArrayBuffer, qrUrl, placement) {
     applyTo,
   } = placement || {};
 
+  const resolvedPosition = position || qrPosition || 'custom';
   const selection = applyTo || pageSelection || 'first';
 
   const qrBytes = await generateQrPngBytes(qrUrl);
@@ -69,7 +71,7 @@ export async function restampPdf(pdfArrayBuffer, qrUrl, placement) {
 
   for (const page of targetPages) {
     const { width, height } = page.getSize();
-    const { x, y } = getQRPosition(position, width, height, qrSize, customX, customY);
+    const { x, y } = getQRPosition(resolvedPosition, width, height, qrSize, customX, customY);
     page.drawImage(qrImage, { x, y, width: qrSize, height: qrSize });
   }
 

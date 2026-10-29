@@ -191,8 +191,7 @@ export function QRPlacementEditor({
                 value={customX}
                 onChange={(e) => {
                   const val = parseInt(e.target.value, 10);
-                  updateSetting('customX', Number.isNaN(val) ? 0 : val);
-                  updateSetting('qrPosition', 'custom');
+                  onChange({ ...settings, customX: Number.isNaN(val) ? 0 : val, qrPosition: 'custom' });
                 }}
                 className="h-9 font-mono text-xs"
               />
@@ -202,8 +201,7 @@ export function QRPlacementEditor({
                 max={PAGE_WIDTH_PT - qrSize}
                 value={customX}
                 onChange={(e) => {
-                  updateSetting('customX', parseInt(e.target.value, 10));
-                  updateSetting('qrPosition', 'custom');
+                  onChange({ ...settings, customX: parseInt(e.target.value, 10), qrPosition: 'custom' });
                 }}
                 className="w-full mt-1.5 accent-primary h-1 bg-secondary rounded-lg cursor-pointer"
               />
@@ -224,8 +222,7 @@ export function QRPlacementEditor({
                 value={customY}
                 onChange={(e) => {
                   const val = parseInt(e.target.value, 10);
-                  updateSetting('customY', Number.isNaN(val) ? 0 : val);
-                  updateSetting('qrPosition', 'custom');
+                  onChange({ ...settings, customY: Number.isNaN(val) ? 0 : val, qrPosition: 'custom' });
                 }}
                 className="h-9 font-mono text-xs"
               />
@@ -235,8 +232,7 @@ export function QRPlacementEditor({
                 max={PAGE_HEIGHT_PT - qrSize}
                 value={customY}
                 onChange={(e) => {
-                  updateSetting('customY', parseInt(e.target.value, 10));
-                  updateSetting('qrPosition', 'custom');
+                  onChange({ ...settings, customY: parseInt(e.target.value, 10), qrPosition: 'custom' });
                 }}
                 className="w-full mt-1.5 accent-primary h-1 bg-secondary rounded-lg cursor-pointer"
               />
@@ -260,7 +256,7 @@ export function QRPlacementEditor({
                 value={qrSize}
                 onChange={(e) => {
                   const val = parseInt(e.target.value, 10);
-                  updateSetting('qrSize', Number.isNaN(val) ? 65 : val);
+                  onChange({ ...settings, qrSize: Number.isNaN(val) ? 65 : val });
                 }}
                 className="h-9 font-mono text-xs"
               />
