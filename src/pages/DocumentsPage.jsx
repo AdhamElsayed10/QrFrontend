@@ -2,7 +2,7 @@ import React, { useEffect, useState, useCallback, useRef } from 'react';
 import {
   Search, FileText, Trash2, Download, Copy, Check,
   ExternalLink, Loader2, RefreshCw, QrCode, LayoutGrid, List,
-  Clock, AlertCircle, CheckCircle2, ArrowRight, ArrowLeft, Pencil,
+  Clock, AlertCircle, CheckCircle2, ArrowRight, ArrowLeft, Pencil, Move,
 } from 'lucide-react';
 import api from '../services/api';
 import toast from 'react-hot-toast';
@@ -17,6 +17,8 @@ import {
   Dialog, DialogContent, DialogTitle, DialogDescription, DialogFooter,
 } from '../components/ui/dialog';
 import { ContractDataEditor } from '../components/contract-data-editor';
+import { QRPlacementEditor, DEFAULT_QR_SETTINGS } from '../components/qr-placement-editor';
+import { restampPdf } from '../utils/restampPdf';
 
 // ─── Status Badge ──────────────────────────────────────────────────────
 const STATUS_CONFIG = {
@@ -63,7 +65,7 @@ function ActionBtn({ icon: Icon, label, onClick, loading, disabled, destructive 
 }
 
 // ─── Document Card (Grid View) ─────────────────────────────────────────
-function DocumentCard({ doc, onView, onDownload, onCopyUrl, onDelete, onEdit, actionState }) {
+function DocumentCard({ doc, onView, onDownload, onCopyUrl, onDelete, onEdit, onPlacement, actionState }) {
   const copied = actionState.copiedId === doc.id;
 
   return (
@@ -145,6 +147,9 @@ export default function DocumentsPage() {
   const [viewMode, setViewMode] = useState('table'); // 'table' | 'grid'
   const [editingDoc, setEditingDoc] = useState(null);
   const [savingContract, setSavingContract] = useState(false);
+  const [placementDoc, setPlacementDoc] = useState(null);
+  const [placementSettings, setPlacementSettings] = useState(DEFAULT_QR_SETTINGS);
+  const [placementSaving, setPlacementSaving] = useState(false);
   const limit = 12;
   const searchTimeout = useRef(null);
 
@@ -228,6 +233,41 @@ export default function DocumentsPage() {
     } finally {
       setSavingContract(false);
     }
+  };
+
+  const openPlacement = (doc) => {
+    setPlacementDoc(doc);
+    setPlacementSettings(DEFAULT_QR_SETTINGS);
+  };
+
+  const handleRestamp = async () => {
+    if (!placementDoc) return;
+    setPlacementSaving(true);
+    try {
+      const res = await api.get('/documents/' + placementDoc.id + '/original', { responseType: 'arraybuffer' });
+      const bytes = await restampPdf(res.data, placementDoc.qrUrl, placementSettings);
+      const blob = new Blob([bytes], { type: 'application/pdf' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = placementDoc.title + '-restamped.pdf';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast.success('QR re-stamped PDF downloaded');
+      setPlacementDoc(null);
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to re-stamp PDF');
+    } finally {
+      setPlacementSaving(false);
+    }
+  };
+
+  const handleResetPlacement = () => {
+    setPlacementSettings(DEFAULT_QR_SETTINGS);
+    toast.success('Reset to default placement');
   };
 
   // Optimistic delete
@@ -451,6 +491,7 @@ export default function DocumentsPage() {
                           <ActionBtn icon={Download} label="Download PDF"
                             onClick={() => handleDownload(doc)} loading={downloadingId === doc.id} />
                           <ActionBtn icon={Pencil} label="Edit QR fields" onClick={() => setEditingDoc(doc)} />
+                          <ActionBtn icon={Move} label="Re-stamp QR placement (client)" onClick={() => openPlacement(doc)} />
                           <ActionBtn icon={Trash2} label="Delete PDF" destructive onClick={() => setDeleteTarget(doc)} />
                         </div>
                       </td>
@@ -523,3 +564,6 @@ export default function DocumentsPage() {
     </div>
   );
 }
+
+
+
