@@ -1,20 +1,12 @@
-import React, { useState } from 'react';
-import { Save, Eye, EyeOff, Loader2, Lock, User, Info, Check, X } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Save, Eye, EyeOff, Loader2, User, Info, Check, X } from 'lucide-react';
 import api from '../services/api';
 import { useAuth } from '../hooks/useAuth';
 import toast from 'react-hot-toast';
 import { Card } from '../components/ui/card';
 import { Input } from '../components/ui/input';
 import { Button } from '../components/ui/button';
-import { QRMark } from '../components/qrcode-mark';
-
-const FIXED_QR = [
-  { label: 'Position', value: 'Custom' },
-  { label: 'Size (px)', value: '50' },
-  { label: 'X from left', value: '48' },
-  { label: 'Y from bottom', value: '620' },
-  { label: 'Applied to', value: 'All pages' },
-];
+import { QRPlacementEditor, DEFAULT_QR_SETTINGS } from '../components/qr-placement-editor';
 
 function ReqChip({ met, label }) {
   return (
@@ -35,9 +27,65 @@ function ReqChip({ met, label }) {
 export default function SettingsPage() {
   const { admin } = useAuth();
 
+  // QR Settings state
+  const [qrSettings, setQrSettings] = useState(DEFAULT_QR_SETTINGS);
+  const [qrLoading, setQrLoading] = useState(true);
+  const [qrSaving, setQrSaving] = useState(false);
+
+  // Password state
   const [pwForm, setPwForm] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
   const [show, setShow] = useState({ current: false, new: false, confirm: false });
   const [pwLoading, setPwLoading] = useState(false);
+
+  useEffect(() => {
+    let mounted = true;
+    async function loadSettings() {
+      try {
+        const res = await api.get('/settings');
+        if (mounted && res.data) {
+          setQrSettings({
+            qrPosition: res.data.qrPosition || 'custom',
+            qrSize: Number(res.data.qrSize) || 65,
+            customX: res.data.customX !== undefined && res.data.customX !== null ? Number(res.data.customX) : 464,
+            customY: res.data.customY !== undefined && res.data.customY !== null ? Number(res.data.customY) : 175,
+            applyTo: res.data.applyTo || 'first',
+          });
+        }
+      } catch (err) {
+        console.warn('Could not load settings from server, using defaults:', err);
+      } finally {
+        if (mounted) setQrLoading(false);
+      }
+    }
+    loadSettings();
+    return () => { mounted = false; };
+  }, []);
+
+  const handleSaveQRSettings = async () => {
+    setQrSaving(true);
+    try {
+      const res = await api.put('/settings', qrSettings);
+      if (res.data) {
+        setQrSettings({
+          qrPosition: res.data.qrPosition || qrSettings.qrPosition,
+          qrSize: Number(res.data.qrSize) || qrSettings.qrSize,
+          customX: Number(res.data.customX) !== undefined ? Number(res.data.customX) : qrSettings.customX,
+          customY: Number(res.data.customY) !== undefined ? Number(res.data.customY) : qrSettings.customY,
+          applyTo: res.data.applyTo || qrSettings.applyTo,
+        });
+      }
+      toast.success('QR placement settings saved');
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Failed to save QR settings');
+    } finally {
+      setQrSaving(false);
+    }
+  };
+
+  const handleResetQRSettings = () => {
+    setQrSettings(DEFAULT_QR_SETTINGS);
+    toast.success('Reset to default Fujairah contract placement');
+  };
 
   const handleChangePassword = async (e) => {
     e.preventDefault();
@@ -91,40 +139,30 @@ export default function SettingsPage() {
   );
 
   return (
-    <div className="space-y-8 max-w-2xl">
+    <div className="space-y-8 max-w-3xl">
       <div>
         <h1 className="heading text-3xl">Settings</h1>
         <p className="text-muted-foreground text-sm mt-1.5">
-          Account details and QR placement defaults
+          Account details and client-side QR placement customization
         </p>
       </div>
 
-      {/* QR placement — locked */}
-      <Card className="relative p-5 sm:p-6">
-        <div
-          className="absolute inset-0 rounded-xl opacity-[0.35] pointer-events-none [background:repeating-linear-gradient(-45deg,transparent,transparent_6px,hsl(var(--muted))_6px,hsl(var(--muted))_7px)]"
-          aria-hidden="true"
-        />
-        <div className="relative">
-          <div className="flex items-center gap-2 mb-1">
-            <QRMark className="w-5 h-5 opacity-70" />
-            <h2 className="heading text-base">QR code placement</h2>
-            <span className="ml-auto inline-flex items-center gap-1 text-[11px] text-muted-foreground border border-border rounded-full px-2 py-0.5">
-              <Lock size={10} /> Fixed
-            </span>
+      {/* QR Placement Settings — Client Configurable */}
+      <Card className="p-5 sm:p-6">
+        {qrLoading ? (
+          <div className="flex flex-col items-center justify-center py-12 gap-3 text-muted-foreground">
+            <Loader2 size={24} className="animate-spin text-primary" />
+            <span className="text-xs">Loading QR placement settings...</span>
           </div>
-          <p className="text-xs text-muted-foreground mb-5">
-            Placement is configured server-side and cannot be changed from here.
-          </p>
-          <dl className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-            {FIXED_QR.map(({ label, value }) => (
-              <div key={label} className="bg-secondary/70 border border-border rounded-lg px-3.5 py-3">
-                <dt className="text-[11px] text-muted-foreground mb-1">{label}</dt>
-                <dd className="num text-base text-foreground">{value}</dd>
-              </div>
-            ))}
-          </dl>
-        </div>
+        ) : (
+          <QRPlacementEditor
+            value={qrSettings}
+            onChange={setQrSettings}
+            onSave={handleSaveQRSettings}
+            onReset={handleResetQRSettings}
+            saving={qrSaving}
+          />
+        )}
       </Card>
 
       {/* Account info */}
@@ -150,7 +188,7 @@ export default function SettingsPage() {
       {/* Change password */}
       <Card className="p-5 sm:p-6">
         <h2 className="heading text-base mb-5 flex items-center gap-2.5">
-          <Lock size={16} className="text-primary" />
+          <span className="text-primary font-bold text-sm">#</span>
           Change password
         </h2>
         <form onSubmit={handleChangePassword} className="space-y-4">
@@ -172,7 +210,6 @@ export default function SettingsPage() {
             value={pwForm.confirmPassword}
             onChange={(e) => setPwForm({ ...pwForm, confirmPassword: e.target.value })}
           />
-          {/* Rules surface before submit, not only after the toast fires */}
           <div className="flex flex-wrap gap-2">
             <ReqChip met={pwForm.newPassword.length >= 8} label="At least 8 characters" />
             {pwForm.confirmPassword.length > 0 && (

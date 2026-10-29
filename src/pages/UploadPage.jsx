@@ -1,9 +1,9 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Upload, FileText, X, CheckCircle2, Loader2,
   ExternalLink, Download, Copy, Check, AlertCircle, ArrowRight,
-  FileUp, Files, Lock,
+  FileUp, Files, Sliders, ChevronDown, ChevronUp,
 } from 'lucide-react';
 import api from '../services/api';
 import toast from 'react-hot-toast';
@@ -13,8 +13,8 @@ import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
 import { BorderBeam } from '../components/magicui/border-beam';
 import { BRAND } from '../lib/colors';
-
-const QR_SETTINGS_NOTE = 'Fixed: size 50px, custom placement (x 48 / y 620 from bottom), applied to all pages.';
+import { QRPlacementEditor, DEFAULT_QR_SETTINGS } from '../components/qr-placement-editor';
+import { QRMark } from '../components/qrcode-mark';
 
 function formatSize(bytes) {
   if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
@@ -36,6 +36,32 @@ export default function UploadPage() {
   const [results, setResults] = useState(null);
   const [copiedId, setCopiedId] = useState(null);
   const [uploadProgress, setUploadProgress] = useState(0);
+
+  // Client-configurable QR placement state
+  const [qrSettings, setQrSettings] = useState(DEFAULT_QR_SETTINGS);
+  const [showPlacementControls, setShowPlacementControls] = useState(false);
+
+  useEffect(() => {
+    let mounted = true;
+    async function loadSettings() {
+      try {
+        const res = await api.get('/settings');
+        if (mounted && res.data) {
+          setQrSettings({
+            qrPosition: res.data.qrPosition || 'custom',
+            qrSize: Number(res.data.qrSize) || 65,
+            customX: res.data.customX !== undefined && res.data.customX !== null ? Number(res.data.customX) : 464,
+            customY: res.data.customY !== undefined && res.data.customY !== null ? Number(res.data.customY) : 175,
+            applyTo: res.data.applyTo || 'first',
+          });
+        }
+      } catch (_) {
+        // Keep DEFAULT_QR_SETTINGS fallback
+      }
+    }
+    loadSettings();
+    return () => { mounted = false; };
+  }, []);
 
   const hasFiles = files.length > 0;
 
@@ -88,6 +114,14 @@ export default function UploadPage() {
     const formData = new FormData();
     files.forEach((file) => formData.append('files', file));
 
+    // Append client-configured QR placement options
+    formData.append('qrPosition', qrSettings.qrPosition || 'custom');
+    formData.append('customX', qrSettings.customX);
+    formData.append('customY', qrSettings.customY);
+    formData.append('qrSize', qrSettings.qrSize);
+    formData.append('applyTo', qrSettings.applyTo || 'first');
+    formData.append('pageSelection', qrSettings.applyTo || 'first');
+
     setLoading(true);
     setUploadProgress(0);
 
@@ -100,8 +134,7 @@ export default function UploadPage() {
         },
       });
 
-      // FormData preserves file order, so response docs map positionally to
-      // files. Anything without a returned document counts as failed.
+      // FormData preserves file order, so response docs map positionally to files
       const newStatuses = {};
       const docs = res.data.documents || [];
       docs.forEach((doc, i) => {
@@ -166,7 +199,6 @@ export default function UploadPage() {
     }
   };
 
-  // Result-card tone depends on actual outcomes, not a blanket "success"
   const completedCount = results ? results.filter((d) => d.processingStatus === 'COMPLETED').length : 0;
   const failedCount = results ? results.length - completedCount : 0;
   const allCompleted = !!results && failedCount === 0;
@@ -185,11 +217,11 @@ export default function UploadPage() {
       <div>
         <h1 className="heading text-3xl">Upload PDFs</h1>
         <p className="text-muted-foreground text-sm mt-1.5">
-          Drop PDFs and QR codes are generated automatically — one or several at a time
+          Drop PDFs and QR codes are generated automatically with customizable placement
         </p>
       </div>
 
-      {/* Drop zone */}
+      {/* Drop zone & QR Placement configuration */}
       <Card className="space-y-4 p-5 sm:p-6">
         <h2 className="heading text-base flex items-center gap-2">
           <FileUp size={16} className="text-primary" />
@@ -236,11 +268,54 @@ export default function UploadPage() {
           </p>
         </div>
 
-        {/* Locked QR placement note */}
-        <p className="flex items-start gap-2 text-xs text-muted-foreground">
-          <Lock size={12} className="flex-shrink-0 mt-0.5 text-primary/60" />
-          {QR_SETTINGS_NOTE}
-        </p>
+        {/* Client-Side QR Placement Control Bar */}
+        <div className="pt-2 border-t border-border/70 space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-3 p-3 bg-secondary/50 rounded-xl border border-border/80">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <QRMark className="w-5 h-5 flex-shrink-0 text-primary" />
+              <div className="text-xs min-w-0">
+                <div className="font-medium text-foreground flex items-center gap-2 flex-wrap">
+                  <span>QR placement</span>
+                  <Badge variant="outline" className="text-[10px] py-0 px-1.5 h-4 capitalize font-mono text-primary border-primary/30">
+                    {qrSettings.qrPosition}
+                  </Badge>
+                  <span className="text-[11px] text-muted-foreground hidden sm:inline">
+                    {qrSettings.applyTo === 'first' ? '· First page only' : '· All pages'}
+                  </span>
+                </div>
+                <p className="text-[11px] font-mono text-muted-foreground mt-0.5 truncate">
+                  X: {qrSettings.customX}pt · Y: {qrSettings.customY}pt · Size: {qrSettings.qrSize}px
+                </p>
+              </div>
+            </div>
+
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setShowPlacementControls(!showPlacementControls)}
+              className="h-8 px-2.5 text-xs gap-1.5 ml-auto text-foreground hover:bg-secondary"
+            >
+              <Sliders size={12} className="text-primary" />
+              <span>{showPlacementControls ? 'Hide placement' : 'Adjust placement'}</span>
+              {showPlacementControls ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+            </Button>
+          </div>
+
+          {/* Collapsible interactive placement editor for this upload */}
+          {showPlacementControls && (
+            <div className="p-4 bg-secondary/30 border border-border rounded-xl">
+              <QRPlacementEditor
+                value={qrSettings}
+                onChange={setQrSettings}
+                compact
+                showSaveButton={false}
+                title="Adjust QR Placement for this Batch"
+                description="Fine-tune stamp position or drag the QR code directly on the preview page"
+              />
+            </div>
+          )}
+        </div>
       </Card>
 
       {/* File list */}
